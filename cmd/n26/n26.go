@@ -215,7 +215,7 @@ func main() {
 		{
 			Name:      "transactions",
 			Usage:     "list your past transactions. Supports CSV output",
-			ArgsUsage: "[csv|json|table]",
+			ArgsUsage: "[csv|json|table|gnucash]",
 			Flags: []cli.Flag{
 				cli.StringFlag{Name: "from", Usage: "retrieve transactions from this date. " +
 					"Also 'to' flag needs to be set. Calendar date in the format yyyy-mm-dd. E.g. 2018-03-01"},
@@ -283,20 +283,26 @@ func main() {
 }
 
 func getTransactionWriter(outType string) (transactionWriter, error) {
-	if outType == "json" {
+	switch outType {
+	case "json":
 		return jsonWriter{}, nil
-	}
-	var table dataWriter
-	if outType == "csv" {
-		var err error
-		table, err = NewCsvWriter(os.Stdout)
-		if err != nil {
-			return nil, err
+	case "csv":
+		fallthrough
+	default:
+		var table dataWriter
+		if outType == "csv" {
+			var err error
+			table, err = NewCsvWriter(os.Stdout)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			table = NewTableWriter()
 		}
-	} else {
-		table = NewTableWriter()
+		return transactionToStringWriter{table}, nil
+	case "gnucash":
+		return NewGncWriter(), nil
 	}
-	return transactionToStringWriter{table}, nil
 }
 
 type transactionToStringWriter struct {
